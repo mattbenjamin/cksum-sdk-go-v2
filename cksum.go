@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-func listObjects(client *s3.Client) {
+func listObjects(ctx context.Context, client *s3.Client) {
 	// Get the first page of results for ListObjectsV2 for a bucket
 	output, err := client.ListObjectsV2(context.TODO(), &s3.ListObjectsV2Input{
 		Bucket: aws.String("sheik"),
@@ -25,6 +26,22 @@ func listObjects(client *s3.Client) {
 	}
 } /* listObjects */
 
+func putObject1(ctx context.Context, client *s3.Client) {
+
+	body := fmt.Sprintf("body for %s/%s", "sheik", "fookeroo")
+
+	poinput := &s3.PutObjectInput{
+		Bucket: aws.String("sheik"),
+		Key:    aws.String("fookeroo"),
+		Body:   strings.NewReader(body),
+	}
+
+	_, _ = client.PutObject(ctx, poinput)
+
+	//output, err := client.PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options))
+
+} /* putObject1 */
+
 func main() {
 
 	/* one day we will use these directly */
@@ -34,8 +51,12 @@ func main() {
 	fmt.Printf("start! acc: %s secret: %s\n",
 		access_key, secret_key)
 
+	/* aws-sdk-go-v2 threads a context parameter which can be empty, so
+	   just create one to pass around */
+	ctx := context.TODO()
+
 	// Load the Shared AWS Configuration (~/.aws/config)
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,5 +67,6 @@ func main() {
 			o.UsePathStyle = true
 		})
 
-	listObjects(client)
+	listObjects(ctx, client)
+	putObject1(ctx, client)
 } /* main */
