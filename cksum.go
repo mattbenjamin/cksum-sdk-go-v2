@@ -10,6 +10,21 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
+func listObjects(client *s3.Client) {
+	// Get the first page of results for ListObjectsV2 for a bucket
+	output, err := client.ListObjectsV2(context.TODO(), &s3.ListObjectsV2Input{
+		Bucket: aws.String("sheik"),
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println("first page results:")
+	for _, object := range output.Contents {
+		log.Printf("key=%s size=%d", aws.ToString(object.Key), object.Size)
+	}
+} /* listObjects */
+
 func main() {
 
 	/* one day we will use these directly */
@@ -31,17 +46,5 @@ func main() {
 			o.UsePathStyle = true
 		})
 
-	// Get the first page of results for ListObjectsV2 for a bucket
-	output, err := client.ListObjectsV2(context.TODO(), &s3.ListObjectsV2Input{
-		Bucket: aws.String("sheik"),
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println("first page results:")
-	for _, object := range output.Contents {
-		log.Printf("key=%s size=%d", aws.ToString(object.Key), object.Size)
-	}
-
-}
+	listObjects(client)
+} /* main */
