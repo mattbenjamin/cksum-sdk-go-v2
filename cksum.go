@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 func listObjects(ctx context.Context, client *s3.Client) {
@@ -29,18 +32,47 @@ func listObjects(ctx context.Context, client *s3.Client) {
 func putObject1(ctx context.Context, client *s3.Client) {
 
 	body := fmt.Sprintf("body for %s/%s", "sheik", "fookeroo")
+	fmt.Printf("body: " + body)
 
 	poinput := &s3.PutObjectInput{
-		Bucket: aws.String("sheik"),
-		Key:    aws.String("fookeroo"),
-		Body:   strings.NewReader(body),
+		Bucket:            aws.String("sheik"),
+		Key:               aws.String("fookeroo"),
+		ChecksumAlgorithm: types.ChecksumAlgorithmSha256,
+		/* ChecksumAlgorithm: types.ChecksumAlgorithmCrc32c, */
+		Body: strings.NewReader(body),
 	}
 
 	_, _ = client.PutObject(ctx, poinput)
-
-	//output, err := client.PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options))
-
 } /* putObject1 */
+
+func consume(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+
+func uploadByManager(ctx context.Context, client *s3.Client) {
+	uploader := manager.NewUploader(client,
+		func(u *manager.Uploader) {
+			u.PartSize = 5 * 1024 * 1024
+			u.Concurrency = 17
+		})
+
+	filename := "initramfs-0-rescue-f7f7c386986a44ca8d033b3f84ebc0ce.img"
+	f, err := os.Open(filename)
+	if err == nil {
+		defer f.Close()
+		_, err2 := uploader.Upload(context.Background(), &s3.PutObjectInput{
+			Bucket:            aws.String("sheik"),
+			Key:               aws.String(filename),
+			ChecksumAlgorithm: types.ChecksumAlgorithmSha256,
+			Body:              f,
+		})
+		consume(err2)
+	}
+
+	// uploader := manager.NewUploader(client manager.UploadAPIClient, options ...func(*manager.Uploader))
+}
 
 func main() {
 
@@ -69,4 +101,5 @@ func main() {
 
 	listObjects(ctx, client)
 	putObject1(ctx, client)
+	uploadByManager(ctx, client)
 } /* main */
