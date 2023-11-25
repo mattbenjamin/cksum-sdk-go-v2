@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 
@@ -35,11 +37,11 @@ func putObject1(ctx context.Context, client *s3.Client) {
 	fmt.Printf("body: " + body)
 
 	poinput := &s3.PutObjectInput{
-		Bucket:            aws.String("sheik"),
-		Key:               aws.String("fookeroo"),
-		ChecksumAlgorithm: types.ChecksumAlgorithmSha256,
-		/* ChecksumAlgorithm: types.ChecksumAlgorithmCrc32c, */
-		Body: strings.NewReader(body),
+		Bucket: aws.String("sheik"),
+		Key:    aws.String("fookeroo"),
+		/* ChecksumAlgorithm: types.ChecksumAlgorithmSha256, */
+		ChecksumAlgorithm: types.ChecksumAlgorithmCrc32c,
+		Body:              strings.NewReader(body),
 	}
 
 	_, _ = client.PutObject(ctx, poinput)
@@ -93,7 +95,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Create an Amazon S3 service client
+	/* Create an Amazon S3 service client willing to accept a
+	   self-signed ssl certificate */
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+
+	httpclient := &http.Client{Transport: tr}
+	cfg.HTTPClient = httpclient
+
 	client := s3.NewFromConfig(cfg,
 		func(o *s3.Options) {
 			o.UsePathStyle = true
