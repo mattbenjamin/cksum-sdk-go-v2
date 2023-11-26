@@ -37,14 +37,16 @@ func putObject1(ctx context.Context, client *s3.Client) {
 	fmt.Printf("body: " + body)
 
 	poinput := &s3.PutObjectInput{
-		Bucket: aws.String("sheik"),
-		Key:    aws.String("fookeroo"),
-		/* ChecksumAlgorithm: types.ChecksumAlgorithmSha256, */
-		ChecksumAlgorithm: types.ChecksumAlgorithmCrc32c,
-		Body:              strings.NewReader(body),
+		Bucket:            aws.String("sheik"),
+		Key:               aws.String("fookeroo"),
+		ChecksumAlgorithm: types.ChecksumAlgorithmSha256,
+		/* ChecksumAlgorithm: types.ChecksumAlgorithmCrc32c, */
+		Body: strings.NewReader(body),
 	}
 
-	_, _ = client.PutObject(ctx, poinput)
+	_, err := client.PutObject(ctx, poinput)
+	consume(err)
+
 } /* putObject1 */
 
 func consume(e error) {
@@ -57,7 +59,7 @@ func uploadByManager(ctx context.Context, client *s3.Client) {
 	uploader := manager.NewUploader(client,
 		func(u *manager.Uploader) {
 			u.PartSize = 5 * 1024 * 1024
-			u.Concurrency = 17
+			u.Concurrency = 1
 		})
 
 	filename := "initramfs-0-rescue-f7f7c386986a44ca8d033b3f84ebc0ce.img"
@@ -109,7 +111,7 @@ func main() {
 			o.UsePathStyle = true
 		})
 
-	listObjects(ctx, client)
+	//listObjects(ctx, client)
 	putObject1(ctx, client)
-	uploadByManager(ctx, client)
+	//uploadByManager(ctx, client)
 } /* main */
