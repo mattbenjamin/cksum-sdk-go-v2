@@ -11,6 +11,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
@@ -33,12 +34,13 @@ func listObjects(ctx context.Context, client *s3.Client) {
 
 func putObject1(ctx context.Context, client *s3.Client) {
 
-	body := fmt.Sprintf("body for %s/%s", "sheik", "fookeroo")
+	object_name := "jerbuti"
+	body := fmt.Sprintf("body for %s/%s", "sheik", object_name)
 	fmt.Printf("body: " + body)
 
 	poinput := &s3.PutObjectInput{
 		Bucket:            aws.String("sheik"),
-		Key:               aws.String("fookeroo"),
+		Key:               aws.String(object_name),
 		ChecksumAlgorithm: types.ChecksumAlgorithmSha256,
 		/* ChecksumAlgorithm: types.ChecksumAlgorithmCrc32c, */
 		Body: strings.NewReader(body),
@@ -48,6 +50,24 @@ func putObject1(ctx context.Context, client *s3.Client) {
 	consume(err)
 
 } /* putObject1 */
+
+func putObject2(ctx context.Context, client *s3.Client) {
+	filename := "file-200b"
+	f, err := os.Open(filename)
+	if err == nil {
+		defer f.Close()
+		poinput := &s3.PutObjectInput{
+			Bucket:            aws.String("sheik"),
+			Key:               aws.String("file5m"),
+			ChecksumAlgorithm: types.ChecksumAlgorithmSha256,
+			/* ChecksumAlgorithm: types.ChecksumAlgorithmCrc32c, */
+			Body: f,
+		}
+		_, err2 := client.PutObject(ctx, poinput)
+		consume(err2)
+	}
+	consume(err)
+} /* putObject2 */
 
 func consume(e error) {
 	if e != nil {
@@ -80,7 +100,10 @@ func uploadByManager(ctx context.Context, client *s3.Client) {
 
 func main() {
 
-	/* one day we will use these directly */
+	region := "us-east1"
+	endpoint_url := "https://fedora.private:8443"
+
+	/* vstart testid creds */
 	access_key := "0555b35654ad1656d804"
 	secret_key := "h7GhxuBLTrlhVUyxSPUKUV8r/2EI4ngqJxD7iBdBYLhwluN30JaT3Q=="
 
@@ -99,6 +122,10 @@ func main() {
 
 	/* Create an Amazon S3 service client willing to accept a
 	   self-signed ssl certificate */
+	creds := credentials.NewStaticCredentialsProvider(
+		access_key, secret_key, "" /* session */)
+	cfg.Credentials = creds
+
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -108,10 +135,13 @@ func main() {
 
 	client := s3.NewFromConfig(cfg,
 		func(o *s3.Options) {
+			o.Region = region
+			o.BaseEndpoint = aws.String(endpoint_url)
 			o.UsePathStyle = true
 		})
 
 	//listObjects(ctx, client)
-	putObject1(ctx, client)
+	//putObject1(ctx, client)
+	putObject2(ctx, client)
 	//uploadByManager(ctx, client)
 } /* main */
